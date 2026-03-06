@@ -1,1 +1,1 @@
-# home-budet-nandiya
+# home-budget-nandiya
