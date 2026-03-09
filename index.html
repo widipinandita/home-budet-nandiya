@@ -140,6 +140,7 @@ window.dispatchEvent(new Event("fb-ready"));
   <div class="header-right">
     <span class="save-status" id="saveStatus">●</span>
     <select id="curSel"></select>
+    <select id="yearSel"></select>
     <select id="monSel"></select>
   </div>
 </div>
@@ -299,6 +300,7 @@ const COLORS=["#6366f1","#22c55e","#f59e0b","#3b82f6","#ec4899","#8b5cf6","#ef44
 
 const NOW=new Date();
 let curMonth=NOW.getMonth();
+let curYear=NOW.getFullYear();
 let currency=CURRENCIES[0];
 
 // Expense categories (master list)
@@ -312,15 +314,15 @@ let categories=[
 let budgets={Hunian:8000000,Belanja:2000000,Utilitas:750000};
 
 let expenses=[
-  {id:1,cat:"Hunian",label:"Sewa",amount:7500000,month:curMonth},
-  {id:2,cat:"Belanja",label:"Belanja mingguan",amount:450000,month:curMonth},
-  {id:3,cat:"Belanja",label:"Pasar",amount:200000,month:curMonth},
-  {id:4,cat:"Utilitas",label:"Listrik",amount:380000,month:curMonth},
-  {id:5,cat:"Utilitas",label:"Internet",amount:300000,month:curMonth},
-  {id:6,cat:"Transportasi",label:"BBM",amount:350000,month:curMonth},
-  {id:7,cat:"Kesehatan",label:"Gym",amount:200000,month:curMonth},
-  {id:8,cat:"Hiburan",label:"Streaming",amount:150000,month:curMonth},
-  {id:9,cat:"Makan",label:"Makan siang",amount:120000,month:curMonth},
+  {id:1,cat:"Hunian",label:"Sewa",amount:7500000,month:curMonth,year:curYear},
+  {id:2,cat:"Belanja",label:"Belanja mingguan",amount:450000,month:curMonth,year:curYear},
+  {id:3,cat:"Belanja",label:"Pasar",amount:200000,month:curMonth,year:curYear},
+  {id:4,cat:"Utilitas",label:"Listrik",amount:380000,month:curMonth,year:curYear},
+  {id:5,cat:"Utilitas",label:"Internet",amount:300000,month:curMonth,year:curYear},
+  {id:6,cat:"Transportasi",label:"BBM",amount:350000,month:curMonth,year:curYear},
+  {id:7,cat:"Kesehatan",label:"Gym",amount:200000,month:curMonth,year:curYear},
+  {id:8,cat:"Hiburan",label:"Streaming",amount:150000,month:curMonth,year:curYear},
+  {id:9,cat:"Makan",label:"Makan siang",amount:120000,month:curMonth,year:curYear},
 ];
 
 let incomeCategories=[
@@ -329,8 +331,8 @@ let incomeCategories=[
   {name:"Lainnya",icon:"🎁",color:"#8b5cf6"},
 ];
 let incomes=[
-  {id:50,cat:"Gaji",label:"Gaji bulanan",amount:15000000,month:curMonth},
-  {id:51,cat:"Freelance",label:"Project desain",amount:3000000,month:curMonth},
+  {id:50,cat:"Gaji",label:"Gaji bulanan",amount:15000000,month:curMonth,year:curYear},
+  {id:51,cat:"Freelance",label:"Project desain",amount:3000000,month:curMonth,year:curYear},
 ];
 
 let savings=[
@@ -381,8 +383,8 @@ async function loadFromFirebase(){
 }
 
 // ── COMPUTED ────────────────────────────────────────────────────────────────
-function monthExp(){return expenses.filter(e=>e.month===curMonth);}
-function monthInc(){return incomes.filter(i=>i.month===curMonth);}
+function monthExp(){return expenses.filter(e=>e.month===curMonth&&e.year===curYear);}
+function monthInc(){return incomes.filter(i=>i.month===curMonth&&i.year===curYear);}
 function spentByCat(){const m={};categories.forEach(c=>m[c.name]=0);monthExp().forEach(e=>{m[e.cat]=(m[e.cat]||0)+e.amount;});return m;}
 function totalSpent(){return Object.values(spentByCat()).reduce((a,b)=>a+b,0);}
 function totalIncome(){return monthInc().reduce((a,i)=>a+i.amount,0);}
@@ -402,6 +404,9 @@ function initSelects(){
   const ms=document.getElementById("monSel");
   MONTHS.forEach((m,i)=>{const o=document.createElement("option");o.value=i;o.textContent=m;ms.appendChild(o);});
   ms.value=curMonth;ms.onchange=()=>{curMonth=+ms.value;render();};
+  const ys=document.getElementById("yearSel");
+  for(let y=NOW.getFullYear()-3;y<=NOW.getFullYear()+1;y++){const o=document.createElement("option");o.value=y;o.textContent=y;ys.appendChild(o);}
+  ys.value=curYear;ys.onchange=()=>{curYear=+ys.value;document.getElementById("yr").textContent=curYear;render();};
 }
 function buildIconGrid(gid,cur,setter){const g=document.getElementById(gid);g.innerHTML="";ICONS.forEach(ic=>{const b=document.createElement("button");b.className="icon-opt"+(cur===ic?" selected":"");b.textContent=ic;b.onclick=()=>{setter(ic);buildIconGrid(gid,ic,setter);};g.appendChild(b);});}
 function buildColorGrid(gid,cur,setter){const g=document.getElementById(gid);g.innerHTML="";COLORS.forEach(col=>{const b=document.createElement("button");b.className="color-opt"+(cur===col?" selected":"");b.style.background=col;b.onclick=()=>{setter(col);buildColorGrid(gid,col,setter);};g.appendChild(b);});}
@@ -549,7 +554,7 @@ function renderCharts(){
 function addIncome(){
   const cat=document.getElementById("incCat").value,label=document.getElementById("incLabel").value.trim(),amount=+document.getElementById("incAmt").value;
   if(!label||!amount)return;
-  incomes.push({id:nextId++,cat,label,amount,month:curMonth});
+  incomes.push({id:nextId++,cat,label,amount,month:curMonth,year:curYear});
   document.getElementById("incLabel").value="";document.getElementById("incAmt").value="";
   render();scheduleSave();
 }
@@ -558,7 +563,7 @@ function delIncome(id){incomes=incomes.filter(i=>i.id!==id);render();scheduleSav
 function addExpense(){
   const cat=document.getElementById("expCat").value,label=document.getElementById("expLabel").value.trim(),amount=+document.getElementById("expAmt").value;
   if(!label||!amount)return;
-  expenses.push({id:nextId++,cat,label,amount,month:curMonth});
+  expenses.push({id:nextId++,cat,label,amount,month:curMonth,year:curYear});
   document.getElementById("expLabel").value="";document.getElementById("expAmt").value="";
   render();scheduleSave();
 }
